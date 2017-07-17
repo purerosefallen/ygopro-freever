@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
 			GetParameter(param, &argv[i][0]);
 			ygo::dataManager.LoadDB(param);
 			continue;
-		else if(!strcmp(argv[i], "-v")) { // version
+		} else if(!strcmp(argv[i], "-v")) { // version
 			++i;
 			char param[128];
 			GetParameter(param, &argv[i][0]);
