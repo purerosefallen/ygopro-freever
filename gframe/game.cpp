@@ -14,6 +14,7 @@
 #include <dirent.h>
 #endif
 
+//modded
 int PRO_VERSION = 0x133E;
 
 namespace ygo {
@@ -67,6 +68,7 @@ bool Game::Initialize() {
 	guiFont = irr::gui::CGUITTFont::createTTFont(env, gameConf.textfont, gameConf.textfontsize);
 	textFont = guiFont;
 	smgr = device->getSceneManager();
+	//modded
 	device->setWindowCaption(L"YGOPro Freever");
 	device->setResizable(false);
 #ifdef _WIN32
@@ -85,6 +87,7 @@ bool Game::Initialize() {
 	SetWindowsIcon();
 	//main menu
 	wchar_t strbuf[256];
+	//modded
 	myswprintf(strbuf, L"YGOPro Custom Version:%X.0%X.%X", PRO_VERSION >> 12, (PRO_VERSION >> 4) & 0xff, PRO_VERSION & 0xf);
 	wMainMenu = env->addWindow(rect<s32>(370, 200, 650, 415), false, strbuf);
 	wMainMenu->getCloseButton()->setVisible(false);
@@ -94,7 +97,6 @@ bool Game::Initialize() {
 //	btnTestMode = env->addButton(rect<s32>(10, 135, 270, 165), wMainMenu, BUTTON_TEST_MODE, dataManager.GetSysString(1203));
 	btnDeckEdit = env->addButton(rect<s32>(10, 135, 270, 165), wMainMenu, BUTTON_DECK_EDIT, dataManager.GetSysString(1204));
 	btnModeExit = env->addButton(rect<s32>(10, 170, 270, 200), wMainMenu, BUTTON_MODE_EXIT, dataManager.GetSysString(1210));
-
 	//lan mode
 	wLanWindow = env->addWindow(rect<s32>(220, 100, 800, 520), false, dataManager.GetSysString(1200));
 	wLanWindow->getCloseButton()->setVisible(false);
@@ -666,13 +668,13 @@ void Game::MainLoop() {
 		driver->beginScene(true, true, SColor(0, 0, 0, 0));
 		gMutex.Lock();
 		if(dInfo.isStarted) {
-			if(mainGame->showcardcode == 1 || mainGame->showcardcode == 3)
+			if(mainGame->dInfo.isFinished && mainGame->showcardcode == 1)
 				PlayBGM(BGM_WIN);
-			else if(mainGame->showcardcode == 2)
+			else if(mainGame->dInfo.isFinished && (mainGame->showcardcode == 2 || mainGame->showcardcode == 3))
 				PlayBGM(BGM_LOSE);
-			else if(mainGame->dInfo.lp[0] > 0 && mainGame->dInfo.lp[LocalPlayer(0)] <= mainGame->dInfo.lp[LocalPlayer(1)] / 2)
+			else if(mainGame->dInfo.lp[0] > 0 && mainGame->dInfo.lp[0] <= mainGame->dInfo.lp[1] / 2)
 				PlayBGM(BGM_DISADVANTAGE);
-			else if(mainGame->dInfo.lp[0] > 0 && mainGame->dInfo.lp[LocalPlayer(0)] >= mainGame->dInfo.lp[LocalPlayer(1)] * 2)
+			else if(mainGame->dInfo.lp[0] > 0 && mainGame->dInfo.lp[0] >= mainGame->dInfo.lp[1] * 2)
 				PlayBGM(BGM_ADVANTAGE);
 			else
 				PlayBGM(BGM_DUEL);
@@ -721,7 +723,7 @@ void Game::MainLoop() {
 			usleep(20000);
 #endif
 		if(cur_time >= 1000) {
-			myswprintf(cap, L"YGOPro Freever FPS: %d", fps);
+			myswprintf(cap, L"YGOPro FPS: %d", fps);
 			device->setWindowCaption(cap);
 			fps = 0;
 			cur_time -= 1000;
@@ -975,6 +977,7 @@ void Game::RefershBGMDir(std::wstring path, int scene) {
 #endif
 }
 void Game::LoadConfig() {
+	//modded
 	FILE* fp = fopen("system_freever.conf", "r");
 	if(!fp)
 		return;
@@ -1006,7 +1009,7 @@ void Game::LoadConfig() {
 	gameConf.control_mode = 0;
 	gameConf.draw_field_spell = 1;
 	gameConf.separate_clear_button = 1;
-	gameConf.auto_search_limit = 0;
+	gameConf.auto_search_limit = -1;
 	gameConf.chkIgnoreDeckChanges = 0;
 	gameConf.enable_sound = true;
 	gameConf.sound_volume = 0.5;
@@ -1023,6 +1026,7 @@ void Game::LoadConfig() {
 			gameConf.antialias = atoi(valbuf);
 		} else if(!strcmp(strbuf, "use_d3d")) {
 			gameConf.use_d3d = atoi(valbuf) > 0;
+		//modded
 		} else if(!strcmp(strbuf, "version")) {
 			PRO_VERSION = atoi(valbuf);
 		} else if(!strcmp(strbuf, "errorlog")) {
@@ -1103,12 +1107,13 @@ void Game::LoadConfig() {
 	fclose(fp);
 }
 void Game::SaveConfig() {
+	//modded
 	FILE* fp = fopen("system_freever.conf", "w");
 	fprintf(fp, "#config file\n#nickname & gamename should be less than 20 characters\n");
 	char linebuf[256];
-	fprintf(fp, "version = %d\n", PRO_VERSION);
 	fprintf(fp, "use_d3d = %d\n", gameConf.use_d3d ? 1 : 0);
-	fprintf(fp, "antialias = %d\n", gameConf.antialias);
+	//modded
+	fprintf(fp, "version = %d\n", PRO_VERSION);
 	fprintf(fp, "errorlog = %d\n", enable_log);
 	BufferIO::CopyWStr(ebNickName->getText(), gameConf.nickname, 20);
 	BufferIO::EncodeUTF8(gameConf.nickname, linebuf);
@@ -1193,6 +1198,10 @@ void Game::PlaySoundEffect(int sound) {
 	}
 	case SOUND_BANISHED: {
 		engineSound->play2D("./sound/banished.wav");
+		break;
+	}
+	case SOUND_TOKEN: {
+		engineSound->play2D("./sound/token.wav");
 		break;
 	}
 	case SOUND_ATTACK: {
